@@ -1,0 +1,112 @@
+* {
+        margin: 0;
+        padding: 0;
+        box-sizing:border-box;
+    }
+    body,
+    html {
+        height: 100%;
+    }
+    body {
+        font-family: 'Microsoft YaHei';
+        -webkit-font-smoothing: subpixel-antialiased;
+        line-height: 1.2em !important;
+        background-color: #FFFFFF;
+    }
+    .title {
+        text-align: center;
+        color: #00FDF8;
+        font-size: 24px;
+        line-height: 50px;
+        background: #304A65;
+    }
+
+    #map {
+        position: absolute;
+        top: 50px;
+        bottom: 0;
+        width: 100%;
+    }
+
+    .label,
+    .label-all {
+        font-weight: 700;
+        text-transform: uppercase;
+        text-align: center;
+        margin-top: -1em;
+    }
+
+    .label-all div {
+        position: relative;
+        width: 200px;
+        top: 15px;
+        overflow: visible;
+        left: -50%;
+        color: #008EFD;
+        /*text-shadow: 0px 0px 1px rgba(255, 255, 255, 0.9);*/
+        pointer-events: none;
+    }
+
+    .label div {
+        position: relative;
+        width: 400px;
+        top: 15px;
+        overflow: visible;
+        left: -50%;
+        color: #de06ff;
+        font-family: 'Microsoft YaHei';
+        font-size: 16px;
+        /*text-shadow: 0px 0px 1px rgba(255, 255, 255, 0.9);*/
+        pointer-events: none;
+    }
+
+    canvas.leaflet-heatmap-layer {
+        pointer-events: none;
+    }
+
+    .func {
+        position: absolute;
+        top: 51px;
+        left: 40px;
+        width: 160px;
+        z-index: 9999;
+    }
+
+    .tips {
+        display: block;
+        padding: 4px;
+        width: 100%;
+        text-align: center;
+        color: #fff;
+        border: none;
+        background: #13C38A;
+        font-size: 14px;
+        border-radius: 4px;
+        /*opacity: 0.7;*/
+        margin: 4px;
+    }
+
+      table {
+          border-collapse: collapse;
+          margin: 0 auto;
+          text-align: center;
+      }
+
+    table td, table th {
+        border: 1px solid #cad9ea;
+        color: #666;
+        height: 30px;
+    }
+
+    table thead th{
+        background-color: #CCE8EB;
+        width: 100px;
+    }
+
+    table tr:nth-child(odd){
+        background: #fff;
+    }
+
+    table tr:nth-child(even){
+        background: #F5FAFA;
+    }

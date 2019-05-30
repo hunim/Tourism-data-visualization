@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>景点数据可视化展示</title>
+    <meta http-equiv="keywords" content="keyword1,keyword2,keyword3">
+    <meta http-equiv="description" content="this is my page">
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+{#    <link href="/static/leaflet/leaflet.css" rel="stylesheet">#}
+    <link href="//cdn.bootcss.com/leaflet/0.7.7/leaflet.css" rel="stylesheet">
+  	<link rel="stylesheet" href="/static/css/typeahead.css" type="text/css">
+    <link rel="stylesheet" href="/static/css/index.css">
+  </head>
+  <body>
+  	<div class="title">中国旅游数据展示</div>
+    <div id="map"></div>
+    <div class="func">
+        <button class="tips" id='mylocation'>点击查附近</button>
+        <input class="typeahead" type="text" placeholder="请输入名称">
+    </div>
+    <script src="//cdn.bootcss.com/leaflet/0.7.7/leaflet.js"></script>
+    <script type="text/javascript" src="/static/js/leaflet-heat.js"></script>
+    <script type="text/javascript" src="/static/js/jquery-2.1.1.min.js"></script>
+    <script type="text/javascript" src="/static/js/typeahead.bundle.min.js"></script>
+    <script type="text/javascript" src="/static/js/echarts.min.js"></script>
+    <script type="text/javascript" src="/static/layer/layer.js"></script>
+    <script type="text/javascript">
+    var map = L.map('map', {
+        tapTolerance: 25
+    }).setView(L.latLng(38.993572058209466, 106.435546875), 4);
+    var baseLayers = {
+        '深色底图': L.tileLayer('//map.geoq.cn/ArcGIS/rest/services/ChinaOnlineStreetPurplishBlue/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'geoq'
+        }),
+        "卫星地图": L.tileLayer('//www.google.cn/maps/vt?lyrs=s@189&gl=cn&x={x}&y={y}&z={z}', {
+            attribution: 'Google Map'
+        }),
+        "电子地图": L.tileLayer('//webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+            subdomains: "1234",
+            attribution: '高德地图'
+        }).addTo(map),
+    };
+
+    var layerControl = L.control.layers(baseLayers, {}, {
+        position: 'topleft',
+        collapsed: true
+    }).addTo(map);
+    var highlight = {}; //高亮符号
+    var lastLayer; //最后点击
+    var trip;
+    var labelgroup = new L.LayerGroup();
+    $.getJSON('/static/JSON/Scene.json', function(data) {
+        trip = L.geoJson(data, {
+            pointToLayer: function(feature, latlng) {
+                var marker = L.circleMarker(latlng, {
+                    radius: 5,
+                    color: '#fff',
+                    fill: true,
+                    weight: 2,
+                    opacity: 1,
+                    fillColor: '#ffc7c7',
+                    fillOpacity: 1
+                });
+                var content =
+                     '<table border="0.3" style="width: 300px; height: 250px; background-color: #e7f7d1; z-index: 999;" >'+
+                     '<tr>'+
+                     '<th>景点名称：</th>'+
+                      //onclick="data() 动态弹出层
+                     '<td ">' + feature.properties.Name +'</td>'+
+                     '</tr>'+
+                     '<th>所在区域：</th>'+
+                     '<td>' + feature.properties.Location +'</td>'+
+                     '</tr>'+
+                     '<tr>'+
+                     '<th>起步价：</th>'+
+                     '<td>'+ feature.properties.Price +'</td>'+
+                     '</tr>'+
+                     '<tr>'+
+                     '<th>销售量：</th>'+
+                     '<td>'+ feature.properties.Sale +'</td>'+
+                     '</tr>'+
+                     '<tr>'+
+                     '<th>地址：</th>'+
+                     '<td>'+ feature.properties.Address +'</td>'+
+                     '</tr>'+
+                     '<th>标语：</th>'+
+                     '<td>'+ feature.properties.Slogan +'</td>'+
+                     '</tr>'+
+                     '</table>';
+                //定义点击弹窗事件
+                var popup =L.popup();
+                function onMapClick(e){
+                    popup.setLatLng(e.latlng).setContent(content).openOn(map);
+                };
+                //marker弹窗事件
+                marker.on('click', function(e) {
+                    onMapClick(e);
+                });
+                marker.on('mouseover', function(e) {
+                });
+                marker.on('mouseout', function(e) {
+                    e.target.setRadius(5);
+                    if (map.hasLayer(lastLayer)) {
+                        map.removeLayer(lastLayer);
+                        map.removeLayer(popup);
+                    }
+                });
+                labelgroup.addLayer(L.marker(latlng, {
+                    icon: L.divIcon({
+                        iconSize: null,
+                        className: 'label-all',
+                        html: '<div>' + feature.properties.Name + '</div>',
+                        coordinates: '<div>' + feature.geometry.coordinates + '</div>'
+                    })
+                }));
+
+                return marker;
+            }
+        }).addTo(map);
+        var heatpoints = data.features.map(function(value) {
+            var point = value.geometry.coordinates.reverse();
+            point.push(1);
+            return point;
+        });
+        var heat = L.heatLayer(heatpoints, {
+            radius: 15,
+            blur: 15,
+            minOpacity: 0.5
+        }).addTo(map);
+        trip.bringToFront();
+        layerControl.addOverlay(trip, '分布点');
+        layerControl.addOverlay(heat, '分布热力图');
+        layerControl.addOverlay(labelgroup, '标注');
+        map.on('zoomend', function(e) {
+            if (map.getZoom() > 8) {
+                if (!map.hasLayer(labelgroup)) {
+                    map.addLayer(labelgroup);
+                }
+            } else {
+                if (map.hasLayer(labelgroup)) {
+                    map.removeLayer(labelgroup);
+                }
+            }
+        });
+        initQuery();
+    });
+
+    //弹出一个iframe层
+    function data() {
+        layer.open({
+            type: 2,
+            title: '详细信息查看',
+            maxmin: true,
+            shadeClose: true, //点击遮罩关闭层
+            area : ['800px' , '520px'],
+            content: 'https://you.ctrip.com/place/Chuzhou228.html'
+        });
+    }
+
+    $("#mylocation").on("click", function() {
+        $("#mylocation").text("正在定位中")
+        map.locate({
+            setView: true,
+            maxZoom: 8
+        });
+    })
+
+    map.on('locationfound', function() {
+        $("#mylocation").text("查看我的附近")
+    });
+
+    map.on('locationerror', function() {
+        $("#mylocation").text("查看我的附近")
+        alert("抱歉，定位失败")
+    });
+
+    // 定位功能使用 leaflet 自带的方法来替换了下面调用原生 API的方式
+    // 但是在某些PC下 会返回错误的经纬度
+     $("#mylocation").on("click", function() {
+         $("#mylocation").text("正在定位中")
+         getCurrentPosition(function(lat, lon) {
+             var latlng = L.latLng(lat, lon);
+             map.setView(latlng, 11);
+             $("#mylocation").text("查看我的附近")
+         }, function() {
+             alert("抱歉，该功能无法使用")
+             $("#mylocation").text("查看我的附近")
+         })
+         })
+     function getCurrentPosition(callback, error) {
+         if ("geolocation" in navigator) {
+             navigator.geolocation.getCurrentPosition(function(position) {
+                 var coords = position.coords;
+                 var lat = coords.latitude;
+                 var lon = coords.longitude;
+                 callback && callback(lat, lon);
+             });
+         } else {
+             // 不支持地理位置api
+             error && error()
+         }
+     }
+
+    function initQuery() {
+        var engine = new Bloodhound({
+            datumTokenizer: Bloodhound.tokenizers.whitespace,
+            queryTokenizer: Bloodhound.tokenizers.whitespace,
+            local: function() {
+                var names = [];
+                trip.eachLayer(function(l) {
+                    names.push(l.feature.properties.Name);
+                });
+                return names;
+            }
+        });
+        engine.initialize();
+        $('.typeahead').typeahead({
+            highlight: true
+        }, {
+            source: engine
+        });
+        $('.typeahead').click(function(){
+            $(this).val('');
+        })
+
+        $('.typeahead').bind('typeahead:select', function(ev, suggestion) {
+            trip.eachLayer(function(l) {
+                if (l.feature.properties.Name === suggestion) {
+                    map.fitBounds(l, {
+                        maxZoom: 18
+                    });
+                }
+            });
+        });
+    }
+    </script>
+  </body>
+</html>
